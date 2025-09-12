@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate, useLocation } from "react-router";
+import { useNavigate } from "react-router";
 import {
   loginSchema,
   type LoginFormData,
@@ -13,10 +13,7 @@ import { Button, Input } from "../ui";
 export default function LoginForm() {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-  const location = useLocation();
   const { isLoading, error } = useSelector((state: RootState) => state.auth);
-
-  const from = location.state?.from?.pathname || "/dashboard";
 
   const {
     register,
@@ -30,7 +27,7 @@ export default function LoginForm() {
     try {
       const result = await dispatch(loginUser(data)).unwrap();
       if (result) {
-        navigate(from, { replace: true });
+        navigate("/", { replace: true });
       }
     } catch (error) {
       console.log(error);

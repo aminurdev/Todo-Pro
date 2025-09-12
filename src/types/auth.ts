@@ -3,8 +3,6 @@ export interface User {
   email: string;
   name: string;
   password?: string;
-  createdAt: string;
-  updatedAt: string;
 }
 
 export interface LoginCredentials {
@@ -12,7 +10,7 @@ export interface LoginCredentials {
   password: string;
 }
 
-export interface RegisterData {
+export interface RegisterCredentials {
   name: string;
   email: string;
   password: string;

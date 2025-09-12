@@ -3,7 +3,11 @@ import {
   createAsyncThunk,
   type PayloadAction,
 } from "@reduxjs/toolkit";
-import type { User, LoginCredentials } from "../../types/auth";
+import type {
+  User,
+  LoginCredentials,
+  RegisterCredentials,
+} from "../../types/auth";
 
 interface AuthState {
   user: User | null;
@@ -23,7 +27,7 @@ export const loginUser = createAsyncThunk(
   "auth/loginUser",
   async (credentials: LoginCredentials, { rejectWithValue }) => {
     try {
-      const response = await fetch("/api/auth/login", {
+      const response = await fetch("/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -40,13 +44,41 @@ export const loginUser = createAsyncThunk(
       localStorage.setItem("token", data.token);
       return data;
     } catch {
-      return rejectWithValue("Network error");
+      return rejectWithValue("Server error");
     }
   }
 );
 
-// Async thunk for logout
+export const registerUser = createAsyncThunk(
+  "auth/registerUser",
+  async (credentials: RegisterCredentials, { rejectWithValue }) => {
+    try {
+      const response = await fetch("/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(credentials),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        return rejectWithValue(error.message);
+      }
+
+      const data = await response.json();
+      localStorage.setItem("token", data.token);
+      return data;
+    } catch {
+      return rejectWithValue("Server error");
+    }
+  }
+);
+
 export const logoutUser = createAsyncThunk("auth/logoutUser", async () => {
+  await fetch("/auth/logout", {
+    method: "POST",
+  });
   localStorage.removeItem("token");
   return null;
 });
@@ -68,6 +100,7 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // Login
       .addCase(loginUser.pending, (state) => {
         state.isLoading = true;
         state.error = null;
@@ -81,7 +114,28 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload as string;
       })
+
+      // Register
+      .addCase(registerUser.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(registerUser.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload.user;
+        state.token = action.payload.token;
+      })
+      .addCase(registerUser.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+
+      // Logout
+      .addCase(logoutUser.pending, (state) => {
+        state.isLoading = true;
+      })
       .addCase(logoutUser.fulfilled, (state) => {
+        state.isLoading = false;
         state.user = null;
         state.token = null;
       });

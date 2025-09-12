@@ -1,25 +1,38 @@
 import { useForm } from "react-hook-form";
-import { z } from "zod";
+
+import { Button, Input } from "../ui";
+import { useDispatch, useSelector } from "react-redux";
+import type { AppDispatch, RootState } from "../../store/store";
+import {
+  registerSchema,
+  type RegisterFormData,
+} from "../../utils/schemas/authSchemas";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Input } from "../ui";
-
-const schema = z.object({
-  name: z.string().min(2, "Name required"),
-  email: z.string().email("Invalid email"),
-  password: z.string().min(6, "Password must be at least 6 chars"),
-});
-
-type FormData = z.infer<typeof schema>;
+import { useNavigate } from "react-router";
+import { registerUser } from "../../store/slices/authSlice";
 
 export default function RegisterForm() {
+  const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
+  const { isLoading, error } = useSelector((state: RootState) => state.auth);
+
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<FormData>({ resolver: zodResolver(schema) });
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+  });
 
-  const onSubmit = (data: FormData) => {
-    console.log("Register data", data);
+  const onSubmit = async (data: RegisterFormData) => {
+    try {
+      const result = await dispatch(registerUser(data)).unwrap();
+      if (result) {
+        navigate("/", { replace: true });
+      }
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   return (
@@ -73,12 +86,9 @@ export default function RegisterForm() {
         />
       </div>
       {error && <div className="text-red-600 text-sm text-center">{error}</div>}
-      <button
-        type="submit"
-        className="w-full py-2 text-white bg-green-500 rounded hover:bg-green-600"
-      >
-        Register
-      </button>
+      <Button type="submit" className="w-full" disabled={isLoading}>
+        {isLoading ? "Registering" : "Register"}
+      </Button>
     </form>
   );
 }

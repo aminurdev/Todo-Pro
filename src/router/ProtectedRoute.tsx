@@ -7,9 +7,9 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, token } = useSelector((state: RootState) => state.auth);
+  const { token } = useSelector((state: RootState) => state.auth);
 
-  if (!token || !user) {
+  if (!token) {
     // Redirect to login page with return url
     return <Navigate to="/login" replace />;
   }
