@@ -39,14 +39,12 @@ const Navbar = () => {
   }, []);
 
   return (
-    <div className="w-full bg-white dark:bg-gray-900 shadow-md px-6 py-3">
+    <div className="w-full bg-white shadow-md px-6 py-3">
       <nav className="max-w-7xl mx-auto flex justify-between items-center">
         {/* Logo */}
         <div className="flex items-center gap-2">
           <img src="/logo.svg" alt="logo" className="w-8 h-8" />
-          <span className="font-bold text-lg text-gray-800 dark:text-gray-100">
-            Todo Pro
-          </span>
+          <span className="font-bold text-lg text-gray-800 ">Todo Pro</span>
         </div>
 
         {/* Right controls */}
@@ -54,7 +52,7 @@ const Navbar = () => {
           {/* Dark/Light Toggle */}
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+            className="p-2 rounded-full bg-gray-200  text-gray-800 "
           >
             {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
           </button>
@@ -63,26 +61,23 @@ const Navbar = () => {
           <div className="relative">
             <button
               onClick={() => setDropdown((prev) => !prev)}
-              className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+              className="p-2 rounded-full bg-gray-200  text-gray-800 "
             >
               <User size={18} />
             </button>
 
             {/* Dropdown Menu */}
             {dropdown && (
-              <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border dark:border-gray-700 z-50">
-                <div className="p-4 border-b dark:border-gray-700">
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
-                    Signed in as
-                  </p>
-                  <p className="font-medium text-gray-800 dark:text-gray-100">
-                    user@example.com
-                  </p>
+              <div className="absolute right-0 mt-2 w-56 bg-white  rounded-lg shadow-lg border border-amber-100  z-50">
+                <div className="p-4 border-b border-amber-100">
+                  <p className="text-sm text-gray-600 ">Signed in as</p>
+                  <p className="font-medium text-gray-800 ">user@example.com</p>
                 </div>
                 <Button
                   variant="outline"
                   onClick={logout}
-                  className="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-gray-700 rounded-b-lg"
+                  loading={isLoading}
+                  className="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50  rounded-b-lg rounded-t-none border-none"
                 >
                   {isLoading ? "Logging out" : "Log out"}
                 </Button>

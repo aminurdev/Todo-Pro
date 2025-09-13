@@ -4,6 +4,7 @@ import "./styles/index.css";
 import App from "./App.tsx";
 import { Provider } from "react-redux";
 import { store } from "./store/store.ts";
+import { ThemeProvider } from "./components/provider/ThemeProvider.tsx";
 
 async function enableMocking() {
   // if (import.meta.env.NODE_ENV !== "development") {
@@ -21,7 +22,9 @@ enableMocking().then(() => {
   createRoot(document.getElementById("root")!).render(
     <StrictMode>
       <Provider store={store}>
-        <App />
+        <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
+          <App />
+        </ThemeProvider>
       </Provider>
     </StrictMode>
   );
