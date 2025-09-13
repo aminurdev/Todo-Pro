@@ -6,9 +6,11 @@ import {
   type LoginFormData,
 } from "../../utils/schemas/authSchemas";
 import { clearError, loginUser } from "../../store/slices/authSlice";
-import { Button, Input } from "../ui";
 import { useAppDispatch, useAppSelector } from "../../hooks";
 import { useEffect } from "react";
+import { Button } from "../ui/button";
+import { Loader2Icon } from "lucide-react";
+import { Input } from "../Input";
 
 export default function LoginForm() {
   const dispatch = useAppDispatch();
@@ -79,7 +81,13 @@ export default function LoginForm() {
         )}
 
         <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? "Signing in..." : "Sign In"}
+          {isLoading ? (
+            <>
+              <Loader2Icon className="animate-spin" /> Signing in...
+            </>
+          ) : (
+            "Sign In"
+          )}
         </Button>
       </form>
     </div>

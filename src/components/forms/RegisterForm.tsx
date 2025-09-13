@@ -1,6 +1,5 @@
 import { useForm } from "react-hook-form";
 
-import { Button, Input } from "../ui";
 import {
   registerSchema,
   type RegisterFormData,
@@ -10,6 +9,9 @@ import { useNavigate } from "react-router";
 import { clearError, registerUser } from "../../store/slices/authSlice";
 import { useAppDispatch, useAppSelector } from "../../hooks";
 import { useEffect } from "react";
+import { Button } from "../ui/button";
+import { Loader2Icon } from "lucide-react";
+import { Input } from "../Input";
 
 export default function RegisterForm() {
   const dispatch = useAppDispatch();
@@ -91,7 +93,13 @@ export default function RegisterForm() {
       </div>
       {error && <div className="text-red-600 text-sm text-center">{error}</div>}
       <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading ? "Registering" : "Register"}
+        {isLoading ? (
+          <>
+            <Loader2Icon className="animate-spin" /> Registering
+          </>
+        ) : (
+          "Register"
+        )}
       </Button>
     </form>
   );

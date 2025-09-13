@@ -1,9 +1,9 @@
-import { Moon, Sun, User } from "lucide-react";
+import { Loader2Icon, Moon, Sun, User } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Button } from "../ui";
 import { logoutUser } from "../../store/slices/authSlice";
 import { useTheme } from "../provider/ThemeProvider";
 import { useAppDispatch, useAppSelector } from "../../hooks";
+import { Button } from "../ui/button";
 
 const Navbar = () => {
   const { theme, setTheme } = useTheme();
@@ -72,13 +72,20 @@ const Navbar = () => {
                   <p className="text-sm text-gray-600 ">{user?.name}</p>
                   <p className="font-medium text-gray-800 ">{user?.email}</p>
                 </div>
+
                 <Button
                   variant="outline"
                   onClick={logout}
-                  loading={isLoading}
-                  className="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50  rounded-b-lg rounded-t-none border-none"
+                  disabled={isLoading}
+                  className="w-full  rounded-t-none "
                 >
-                  {isLoading ? "Logging out" : "Log out"}
+                  {isLoading ? (
+                    <>
+                      <Loader2Icon className="animate-spin" /> Logging out
+                    </>
+                  ) : (
+                    "Log out"
+                  )}
                 </Button>
               </div>
             )}

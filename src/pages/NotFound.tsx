@@ -1,5 +1,5 @@
+import { Button } from "@/components/ui/button";
 import { Link } from "react-router";
-import { Button } from "../components/ui";
 
 export default function NotFound() {
   return (
@@ -12,9 +12,10 @@ export default function NotFound() {
         <p className="text-gray-600 mt-2 mb-8">
           Sorry, we couldn't find the page you're looking for.
         </p>
-        <Link to="/">
-          <Button>Go back home</Button>
-        </Link>
+        <Button asChild>
+          {" "}
+          <Link to="/">Go back home</Link>
+        </Button>
       </div>
     </div>
   );
