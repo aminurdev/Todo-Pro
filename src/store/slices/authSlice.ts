@@ -9,10 +9,12 @@ import type {
   RegisterCredentials,
 } from "../../types/auth";
 
+// --- State ---
 interface AuthState {
   user: User | null;
   token: string | null;
   isLoading: boolean;
+  userLoading: boolean;
   error: string | null;
 }
 
@@ -20,69 +22,94 @@ const initialState: AuthState = {
   user: null,
   token: localStorage.getItem("token"),
   isLoading: false,
+  userLoading: false,
   error: null,
 };
 
-export const loginUser = createAsyncThunk(
-  "auth/loginUser",
-  async (credentials: LoginCredentials, { rejectWithValue }) => {
-    try {
-      const response = await fetch("/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(credentials),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        return rejectWithValue(error.message);
-      }
-
-      const data = await response.json();
-      localStorage.setItem("token", data.token);
-      return data;
-    } catch {
-      return rejectWithValue("Server error");
-    }
-  }
-);
-
+// --- Thunks ---
+// Register
 export const registerUser = createAsyncThunk(
   "auth/registerUser",
   async (credentials: RegisterCredentials, { rejectWithValue }) => {
     try {
-      const response = await fetch("/auth/register", {
+      const res = await fetch("/auth/register", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(credentials),
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        return rejectWithValue(error.message);
+      if (!res.ok) {
+        const error = await res.json();
+        return rejectWithValue(error.message || "Registration failed");
       }
 
-      const data = await response.json();
+      const data = await res.json();
       localStorage.setItem("token", data.token);
-      return data;
+      return data; // { user, token }
     } catch {
       return rejectWithValue("Server error");
     }
   }
 );
 
+// Login
+export const loginUser = createAsyncThunk(
+  "auth/loginUser",
+  async (credentials: LoginCredentials, { rejectWithValue }) => {
+    try {
+      const res = await fetch("/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(credentials),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        return rejectWithValue(error.message || "Login failed");
+      }
+
+      const data = await res.json();
+      localStorage.setItem("token", data.token);
+      return data; // { user, token }
+    } catch {
+      return rejectWithValue("Server error");
+    }
+  }
+);
+
+// Logout
 export const logoutUser = createAsyncThunk("auth/logoutUser", async () => {
-  await fetch("/auth/logout", {
-    method: "POST",
-  });
+  await fetch("/auth/logout", { method: "POST" });
   localStorage.removeItem("token");
   return null;
 });
 
+// Get current user
+export const getUser = createAsyncThunk(
+  "auth/getUser",
+  async (_, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return rejectWithValue("No token found");
+
+      const res = await fetch("/auth/user", {
+        headers: { Authorization: token },
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        return rejectWithValue(error.message || "Failed to fetch user");
+      }
+
+      const data = await res.json();
+      return data; // { user, token }
+    } catch {
+      return rejectWithValue("Server error");
+    }
+  }
+);
+
+// --- Slice ---
 const authSlice = createSlice({
   name: "auth",
   initialState,
@@ -96,25 +123,11 @@ const authSlice = createSlice({
     ) => {
       state.user = action.payload.user;
       state.token = action.payload.token;
+      localStorage.setItem("token", action.payload.token);
     },
   },
   extraReducers: (builder) => {
     builder
-      // Login
-      .addCase(loginUser.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(loginUser.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.user = action.payload.user;
-        state.token = action.payload.token;
-      })
-      .addCase(loginUser.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload as string;
-      })
-
       // Register
       .addCase(registerUser.pending, (state) => {
         state.isLoading = true;
@@ -130,17 +143,43 @@ const authSlice = createSlice({
         state.error = action.payload as string;
       })
 
-      // Logout
-      .addCase(logoutUser.pending, (state) => {
+      // Login
+      .addCase(loginUser.pending, (state) => {
         state.isLoading = true;
+        state.error = null;
       })
-      .addCase(logoutUser.fulfilled, (state) => {
+      .addCase(loginUser.fulfilled, (state, action) => {
         state.isLoading = false;
+        state.user = action.payload.user;
+        state.token = action.payload.token;
+      })
+      .addCase(loginUser.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+
+      // Logout
+      .addCase(logoutUser.fulfilled, (state) => {
         state.user = null;
         state.token = null;
+        state.isLoading = false;
+      })
+
+      // Get User
+      .addCase(getUser.pending, (state) => {
+        state.userLoading = true;
+      })
+      .addCase(getUser.fulfilled, (state, action) => {
+        state.userLoading = false;
+        state.user = action.payload.user;
+        state.token = action.payload.token;
+      })
+      .addCase(getUser.rejected, (state) => {
+        state.userLoading = false;
       });
   },
 });
 
+// --- Exports ---
 export const { clearError, setCredentials } = authSlice.actions;
 export default authSlice.reducer;

@@ -1,20 +1,24 @@
 import { useForm } from "react-hook-form";
 
 import { Button, Input } from "../ui";
-import { useDispatch, useSelector } from "react-redux";
-import type { AppDispatch, RootState } from "../../store/store";
 import {
   registerSchema,
   type RegisterFormData,
 } from "../../utils/schemas/authSchemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "react-router";
-import { registerUser } from "../../store/slices/authSlice";
+import { clearError, registerUser } from "../../store/slices/authSlice";
+import { useAppDispatch, useAppSelector } from "../../hooks";
+import { useEffect } from "react";
 
 export default function RegisterForm() {
-  const dispatch = useDispatch<AppDispatch>();
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { isLoading, error } = useSelector((state: RootState) => state.auth);
+  const { isLoading, error } = useAppSelector((state) => state.auth);
+
+  useEffect(() => {
+    dispatch(clearError());
+  }, [dispatch]);
 
   const {
     register,

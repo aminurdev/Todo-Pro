@@ -1,19 +1,23 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router";
 import {
   loginSchema,
   type LoginFormData,
 } from "../../utils/schemas/authSchemas";
-import { loginUser } from "../../store/slices/authSlice";
-import type { AppDispatch, RootState } from "../../store/store";
+import { clearError, loginUser } from "../../store/slices/authSlice";
 import { Button, Input } from "../ui";
+import { useAppDispatch, useAppSelector } from "../../hooks";
+import { useEffect } from "react";
 
 export default function LoginForm() {
-  const dispatch = useDispatch<AppDispatch>();
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { isLoading, error } = useSelector((state: RootState) => state.auth);
+  const { isLoading, error } = useAppSelector((state) => state.auth);
+
+  useEffect(() => {
+    dispatch(clearError());
+  }, [dispatch]);
 
   const {
     register,

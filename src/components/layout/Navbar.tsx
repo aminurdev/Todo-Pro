@@ -1,17 +1,16 @@
 import { Moon, Sun, User } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import type { AppDispatch, RootState } from "../../store/store";
 import { Button } from "../ui";
 import { logoutUser } from "../../store/slices/authSlice";
 import { useTheme } from "../provider/ThemeProvider";
+import { useAppDispatch, useAppSelector } from "../../hooks";
 
 const Navbar = () => {
   const { theme, setTheme } = useTheme();
   const [dropdown, setDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const dispatch = useDispatch<AppDispatch>();
-  const { isLoading } = useSelector((state: RootState) => state.auth);
+  const dispatch = useAppDispatch();
+  const { isLoading, user } = useAppSelector((state) => state.auth);
 
   const toggleTheme = () => {
     if (theme === "dark") {
@@ -70,8 +69,8 @@ const Navbar = () => {
             {dropdown && (
               <div className="absolute right-0 mt-2 w-56 bg-white  rounded-lg shadow-lg border border-amber-100  z-50">
                 <div className="p-4 border-b border-amber-100">
-                  <p className="text-sm text-gray-600 ">Signed in as</p>
-                  <p className="font-medium text-gray-800 ">user@example.com</p>
+                  <p className="text-sm text-gray-600 ">{user?.name}</p>
+                  <p className="font-medium text-gray-800 ">{user?.email}</p>
                 </div>
                 <Button
                   variant="outline"
