@@ -1,12 +1,13 @@
 import { createBrowserRouter } from "react-router";
 
 // Pages
-import Home from "../pages/Home";
+import Todos from "../pages/Todos";
 import Login from "../pages/Login";
 import NotFound from "../pages/NotFound";
 import Register from "../pages/Register";
 import { AuthLayout, RootLayout } from "@/components/layout";
 import ProtectedRoute from "./ProtectedRoute";
+import HomePage from "@/pages/Home";
 
 const router = createBrowserRouter([
   {
@@ -15,13 +16,13 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
-        Component: Home,
+        Component: HomePage,
       },
       {
-        path: "/app/todo",
+        path: "/app/todos",
         element: (
           <ProtectedRoute>
-            <h1>Hello</h1>
+            <Todos />
           </ProtectedRoute>
         ),
       },
