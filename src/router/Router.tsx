@@ -26,10 +26,14 @@ const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
+      {
+        path: "*",
+        Component: NotFound,
+      },
     ],
   },
   {
-    path: "/auth",
+    path: "/",
     Component: AuthLayout,
     children: [
       {
@@ -41,10 +45,6 @@ const router = createBrowserRouter([
         Component: Register,
       },
     ],
-  },
-  {
-    path: "*",
-    Component: NotFound,
   },
 ]);
 

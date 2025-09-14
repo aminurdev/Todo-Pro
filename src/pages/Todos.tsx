@@ -23,10 +23,10 @@ import { EditTodoDialog } from "@/components/EditTodoDialog";
 import { TodoListItem } from "@/components/TodoListItem";
 import { Button } from "@/components/ui/button";
 import { Plus, LayoutGrid, List } from "lucide-react";
-import { SimplePagination } from "@/components/SimplePagination";
 import { useAppDispatch, useAppSelector } from "@/hooks";
+import { Pagination } from "@/components/pagination";
 
-export default function TodoApp() {
+export default function TodosPage() {
   const dispatch = useAppDispatch();
   const { data, isLoading, isPending, error } = useAppSelector(
     (state) => state.todos
@@ -37,7 +37,7 @@ export default function TodoApp() {
   // Server-side parameters
   const [params, setParams] = useState<FetchTodosParams>({
     page,
-    itemsPerPage: 20,
+    itemsPerPage: 10,
     sortBy: "createdAt",
     sortOrder: "desc",
   });
@@ -110,7 +110,7 @@ export default function TodoApp() {
   const handleClearFilters = useCallback(() => {
     setParams({
       page: 1,
-      itemsPerPage: 20,
+      itemsPerPage: 10,
       sortBy: "createdAt",
       sortOrder: "desc",
     });
@@ -345,7 +345,7 @@ export default function TodoApp() {
               )}
             </div>
 
-            <SimplePagination
+            <Pagination
               currentPage={page}
               totalPages={totalPages}
               totalItems={totalItems}

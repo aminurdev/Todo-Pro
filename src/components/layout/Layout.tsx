@@ -3,7 +3,7 @@ import Navbar from "./Navbar";
 
 export const RootLayout = () => {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen  bg-background">
       <main>
         <Navbar />
         <Outlet />
@@ -14,7 +14,7 @@ export const RootLayout = () => {
 
 export const AuthLayout = () => {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen  bg-background">
       <main>
         <Outlet />
       </main>

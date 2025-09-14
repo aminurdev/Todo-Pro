@@ -1,4 +1,3 @@
-// types/todo.ts
 export type TodoStatus = "todo" | "in_progress" | "done";
 export type TodoPriority = "low" | "medium" | "high";
 
@@ -9,7 +8,7 @@ export interface Todo {
   status: TodoStatus;
   priority: TodoPriority;
   tags: string[];
-  dueDate?: string; // keep as string for JSON
+  dueDate?: string;
   createdAt: string;
   updatedAt: string;
 }
