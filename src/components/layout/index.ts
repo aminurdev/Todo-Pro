@@ -1,2 +1,2 @@
-export { default as Layout } from "./Layout";
+export { RootLayout, AuthLayout } from "./Layout";
 export { default as Navbar } from "./Navbar";

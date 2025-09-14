@@ -1,32 +1,42 @@
 import { createBrowserRouter } from "react-router";
-import { Layout } from "../components/layout";
-import ProtectedRoute from "./ProtectedRoute";
 
 // Pages
 import Home from "../pages/Home";
 import Login from "../pages/Login";
 import NotFound from "../pages/NotFound";
 import Register from "../pages/Register";
+import { AuthLayout, RootLayout } from "@/components/layout";
+import ProtectedRoute from "./ProtectedRoute";
 
 const router = createBrowserRouter([
   {
     path: "/",
-    Component: Layout,
+    Component: RootLayout,
     children: [
       {
         index: true,
+        Component: Home,
+      },
+      {
+        path: "/app/todo",
         element: (
           <ProtectedRoute>
-            <Home />
+            <h1>Hello</h1>
           </ProtectedRoute>
         ),
       },
+    ],
+  },
+  {
+    path: "/auth",
+    Component: AuthLayout,
+    children: [
       {
-        path: "/login",
+        path: "login",
         Component: Login,
       },
       {
-        path: "/register",
+        path: "register",
         Component: Register,
       },
     ],
@@ -36,4 +46,5 @@ const router = createBrowserRouter([
     Component: NotFound,
   },
 ]);
+
 export default router;

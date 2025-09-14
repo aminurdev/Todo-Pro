@@ -79,7 +79,12 @@ export const loginUser = createAsyncThunk(
 
 // Logout
 export const logoutUser = createAsyncThunk("auth/logoutUser", async () => {
-  await fetch("/auth/logout", { method: "POST" });
+  await fetch("/auth/logout", {
+    method: "POST",
+    headers: {
+      Authorization: localStorage.getItem("token") ?? ("" as string),
+    },
+  });
   localStorage.removeItem("token");
   return null;
 });

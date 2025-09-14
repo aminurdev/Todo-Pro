@@ -1,6 +1,18 @@
 import { Outlet } from "react-router";
+import Navbar from "./Navbar";
 
-export default function Layout() {
+export const RootLayout = () => {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <main>
+        <Navbar />
+        <Outlet />
+      </main>
+    </div>
+  );
+};
+
+export const AuthLayout = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <main>
@@ -8,4 +20,4 @@ export default function Layout() {
       </main>
     </div>
   );
-}
+};

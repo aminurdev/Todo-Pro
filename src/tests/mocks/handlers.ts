@@ -1,5 +1,5 @@
 import { http, delay, HttpResponse } from "msw";
-import type { Todo } from "../../types/todo";
+import type { Todo, TodoPriority, TodoStatus } from "../../types/todo";
 import { mockTodos, mockUsers } from "./data";
 import type { User } from "../../types/auth";
 
@@ -93,8 +93,10 @@ export const handlers = [
     );
   }),
 
-  http.post("/auth/logout", async () => {
+  http.post("/auth/logout", async ({ request }) => {
+    withAuthorization(request);
     await delay(500);
+
     return HttpResponse.json(
       { message: "Logged out successfully" },
       { status: 200 }
@@ -104,13 +106,93 @@ export const handlers = [
   // --- TODOS HANDLERS --- //
 
   // GET /todos
-  http.get("/todos", async () => {
-    await delay(1200);
-    return HttpResponse.json(todos, { status: 200 });
+  http.get("/todos", async ({ request }) => {
+    withAuthorization(request);
+    await delay(300);
+
+    const url = new URL(request.url);
+
+    // Pagination
+    const page = parseInt(url.searchParams.get("page") || "1", 10);
+    const itemsPerPage = parseInt(
+      url.searchParams.get("items-per-page") || "10",
+      10
+    );
+
+    // Filters
+    const search = url.searchParams.get("search")?.toLowerCase() || "";
+    const status = url.searchParams.get("status") as TodoStatus | null;
+    const priority = url.searchParams.get("priority") as TodoPriority | null;
+
+    // Sorting
+    const sortBy = url.searchParams.get("sortBy") || "createdAt"; // createdAt | dueDate | priority
+    const sortOrder = url.searchParams.get("sortOrder") || "desc"; // asc | desc
+
+    // Start with all todos
+    let results = [...todos];
+
+    // Apply search
+    if (search) {
+      results = results.filter(
+        (t) =>
+          t.title.toLowerCase().includes(search) ||
+          (t.description?.toLowerCase().includes(search) ?? false) ||
+          t.tags.some((tag) => tag.toLowerCase().includes(search))
+      );
+    }
+
+    // Apply status filter
+    if (status) {
+      results = results.filter((t) => t.status === status);
+    }
+
+    // Apply priority filter
+    if (priority) {
+      results = results.filter((t) => t.priority === priority);
+    }
+
+    // Apply sorting
+    results.sort((a, b) => {
+      let compare = 0;
+
+      if (sortBy === "createdAt") {
+        compare =
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      } else if (sortBy === "dueDate") {
+        compare =
+          (a.dueDate ? new Date(a.dueDate).getTime() : 0) -
+          (b.dueDate ? new Date(b.dueDate).getTime() : 0);
+      } else if (sortBy === "priority") {
+        const priorityOrder: Record<TodoPriority, number> = {
+          low: 1,
+          medium: 2,
+          high: 3,
+        };
+        compare = priorityOrder[a.priority] - priorityOrder[b.priority];
+      }
+
+      return sortOrder === "asc" ? compare : -compare;
+    });
+
+    // Pagination
+    const startIndex = (page - 1) * itemsPerPage;
+    const paginated = results.slice(startIndex, startIndex + itemsPerPage);
+
+    return HttpResponse.json(
+      {
+        items: paginated,
+        total: results.length,
+        page,
+        itemsPerPage,
+      },
+      { status: 200 }
+    );
   }),
 
   // POST /todos
   http.post("/todos", async ({ request }) => {
+    withAuthorization(request);
+
     const body = await request.clone().json();
     await delay(1200);
 
@@ -132,7 +214,9 @@ export const handlers = [
   }),
 
   // PATCH /todos/:id
-  http.patch("/todos/:id", async ({ params, request }) => {
+  http.patch<{ id: string }>("/todos/:id", async ({ params, request }) => {
+    withAuthorization(request);
+
     const body = await request.clone().json();
     const { id } = params;
     await delay(1200);
@@ -152,7 +236,7 @@ export const handlers = [
   }),
 
   // DELETE /todos/:id
-  http.delete("/todos/:id", async ({ params }) => {
+  http.delete<{ id: string }>("/todos/:id", async ({ params }) => {
     const { id } = params;
     await delay(1200);
     const index = todos.findIndex((t) => t.id === id);

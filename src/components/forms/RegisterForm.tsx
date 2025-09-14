@@ -1,5 +1,4 @@
 import { useForm } from "react-hook-form";
-
 import {
   registerSchema,
   type RegisterFormData,
@@ -8,27 +7,38 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "react-router";
 import { clearError, registerUser } from "../../store/slices/authSlice";
 import { useAppDispatch, useAppSelector } from "../../hooks";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "../ui/button";
-import { Loader2Icon } from "lucide-react";
-import { Input } from "../Input";
+import { Eye, EyeOff, Loader2Icon } from "lucide-react";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "../ui/form";
+import { Input } from "../ui/input";
+import { FormError } from "./FormError";
 
 export default function RegisterForm() {
+  const [isShow, setIsShow] = useState(false);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { isLoading, error } = useAppSelector((state) => state.auth);
 
+  const form = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+    },
+  });
+
   useEffect(() => {
     dispatch(clearError());
   }, [dispatch]);
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<RegisterFormData>({
-    resolver: zodResolver(registerSchema),
-  });
 
   const onSubmit = async (data: RegisterFormData) => {
     try {
@@ -42,65 +52,91 @@ export default function RegisterForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
-      <h2 className="text-xl font-semibold text-center">Register</h2>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+        <h2 className="text-xl font-semibold text-center">Register</h2>
 
-      <div>
-        <label
-          htmlFor="name"
-          className="block text-sm font-medium text-gray-700"
-        >
-          Name
-        </label>
-        <Input
-          id="name"
-          type="text"
-          {...register("name")}
-          error={errors.name?.message}
-          placeholder="Enter your name"
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Name</FormLabel>
+              <FormControl>
+                <Input type="text" placeholder="Enter your name" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      <div>
-        <label
-          htmlFor="email"
-          className="block text-sm font-medium text-gray-700"
-        >
-          Email
-        </label>
-        <Input
-          id="email"
-          type="email"
-          {...register("email")}
-          error={errors.email?.message}
-          placeholder="Enter your email"
-        />
-      </div>
 
-      <div>
-        <label
-          htmlFor="password"
-          className="block text-sm font-medium text-gray-700"
-        >
-          Password
-        </label>
-        <Input
-          id="password"
-          type="password"
-          {...register("password")}
-          error={errors.password?.message}
-          placeholder="Enter your password"
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input type="email" placeholder="Enter your email" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      {error && <div className="text-red-600 text-sm text-center">{error}</div>}
-      <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading ? (
-          <>
-            <Loader2Icon className="animate-spin" /> Registering
-          </>
-        ) : (
-          "Register"
-        )}
-      </Button>
-    </form>
+
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Password</FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <Input
+                    {...field}
+                    type={isShow ? "text" : "password"}
+                    placeholder="Enter your password"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0 hover:bg-transparent"
+                    onClick={() => setIsShow((prev) => !prev)}
+                  >
+                    {isShow ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                    <span className="sr-only">
+                      {isShow ? "Hide password" : "Show password"}
+                    </span>
+                  </Button>
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormError message={error ?? ""} />
+
+        <Button
+          type="submit"
+          className="w-full text-white"
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <>
+              <Loader2Icon className="animate-spin mr-2 h-4 w-4" />
+              Registering...
+            </>
+          ) : (
+            "Register"
+          )}
+        </Button>
+      </form>
+    </Form>
   );
 }

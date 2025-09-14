@@ -1,198 +1,373 @@
-import { useEffect, useState } from "react";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-
-import { Navbar } from "../components/layout";
-import { useAppDispatch, useAppSelector } from "../hooks";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { DragDropContext, type DropResult } from "@hello-pangea/dnd";
+import type {
+  Todo,
+  TodoFilters,
+  TodoStatus,
+  SortBy,
+  SortOrder,
+  NewTodo,
+  FetchTodosParams,
+} from "@/types/todo";
 import {
-  addTodo,
-  deleteTodo,
   fetchTodos,
+  addTodo,
   updateTodo,
-} from "../store/slices/todoSlice";
+  deleteTodo,
+  clearTodosError,
+} from "@/store/slices/todoSlice";
+import { TodoColumn } from "@/components/TodoColumn";
+import { TodoFilters as TodoFiltersComponent } from "@/components/TodoFilters";
+import { AddTodoDialog } from "@/components/AddTodoDialog";
+import { EditTodoDialog } from "@/components/EditTodoDialog";
+import { TodoListItem } from "@/components/TodoListItem";
+import { Button } from "@/components/ui/button";
+import { Plus, LayoutGrid, List } from "lucide-react";
+import { SimplePagination } from "@/components/SimplePagination";
+import { useAppDispatch, useAppSelector } from "@/hooks";
 
-const Home = () => {
-  return (
-    <div>
-      <Navbar />
-      <TodoPage />
-    </div>
-  );
-};
-
-export default Home;
-
-// --- Zod schema for form ---
-const todoSchema = z.object({
-  title: z.string().min(2, "Title must be at least 2 characters"),
-  description: z.string().optional(),
-  status: z.enum(["todo", "in_progress", "done"]),
-  priority: z.enum(["low", "medium", "high"]).optional(),
-  dueDate: z.string().optional(),
-});
-
-type TodoFormValues = z.infer<typeof todoSchema>;
-
-const TodoPage = () => {
+export default function TodoApp() {
   const dispatch = useAppDispatch();
-  const {
-    items: todos,
-    isLoading,
-    error,
-  } = useAppSelector((state) => state.todo);
+  const { data, isLoading, isPending, error } = useAppSelector(
+    (state) => state.todos
+  );
 
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const { items: todos, page, totalItems, totalPages } = data;
 
-  // Form setup
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<TodoFormValues>({
-    resolver: zodResolver(todoSchema),
-    defaultValues: {
-      status: "todo",
-      priority: "medium",
-    },
+  // Server-side parameters
+  const [params, setParams] = useState<FetchTodosParams>({
+    page,
+    itemsPerPage: 20,
+    sortBy: "createdAt",
+    sortOrder: "desc",
   });
 
+  // UI state
+  const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [addDialogStatus, setAddDialogStatus] = useState<TodoStatus>("todo");
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
+
+  // Fetch todos when params change
+  const fetchTodosWithParams = useCallback(() => {
+    dispatch(fetchTodos(params));
+  }, [dispatch, params]);
+
   useEffect(() => {
-    dispatch(fetchTodos());
+    fetchTodosWithParams();
+  }, [fetchTodosWithParams]);
+
+  useEffect(() => {
+    return () => {
+      dispatch(clearTodosError());
+    };
   }, [dispatch]);
 
-  // Handle form submit
-  const onSubmit = (data: TodoFormValues) => {
-    if (editingId) {
-      dispatch(updateTodo({ id: editingId, ...data }));
-      setEditingId(null);
-    } else {
-      dispatch(addTodo(data));
-    }
-    reset();
-  };
+  // Group todos by status (server already provides filtered/sorted data)
+  const todosByStatus = useMemo(() => {
+    const grouped = {
+      todo: [] as Todo[],
+      in_progress: [] as Todo[],
+      done: [] as Todo[],
+    };
 
-  // Edit existing todo
-  const handleEdit = (id: string) => {
-    const todo = todos.find((t) => t.id === id);
-    if (todo) {
-      reset({
-        title: todo.title,
-        description: todo.description,
-        status: todo.status as "todo" | "in_progress" | "done",
-        priority: todo.priority as "low" | "medium" | "high",
-        dueDate: todo.dueDate ?? "",
+    // Defensive programming - ensure todos is an array
+    if (todos.length > 0) {
+      todos.forEach((todo) => {
+        if (todo && todo.status && grouped[todo.status]) {
+          grouped[todo.status].push(todo);
+        }
       });
-      setEditingId(id);
     }
-  };
 
-  // Delete todo
-  const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this todo?")) {
-      dispatch(deleteTodo(id));
-    }
-  };
+    return grouped;
+  }, [todos]);
+
+  // Server-side parameter handlers
+  const handleFiltersChange = useCallback((filters: TodoFilters) => {
+    setParams((prev) => ({
+      ...prev,
+      page: 1, // Reset to first page
+      search: filters.search,
+      status: filters.status,
+      priority: filters.priority,
+    }));
+  }, []);
+
+  const handleSortChange = useCallback(
+    (sortBy: SortBy, sortOrder: SortOrder) => {
+      setParams((prev) => ({
+        ...prev,
+        page: 1, // Reset to first page
+        sortBy,
+        sortOrder,
+      }));
+    },
+    []
+  );
+
+  const handleClearFilters = useCallback(() => {
+    setParams({
+      page: 1,
+      itemsPerPage: 20,
+      sortBy: "createdAt",
+      sortOrder: "desc",
+    });
+  }, []);
+
+  const handlePageChange = useCallback((newPage: number) => {
+    setParams((prev) => ({ ...prev, page: newPage }));
+  }, []);
+
+  const handleDragEnd = useCallback(
+    async (result: DropResult) => {
+      const { destination, source, draggableId } = result;
+
+      if (!destination) return;
+
+      if (
+        destination.droppableId === source.droppableId &&
+        destination.index === source.index
+      ) {
+        return;
+      }
+
+      const newStatus = destination.droppableId as TodoStatus;
+
+      // Update todo status
+      await dispatch(updateTodo({ id: draggableId, status: newStatus }));
+      // Refresh data to get updated todos from server
+      fetchTodosWithParams();
+    },
+    [dispatch, fetchTodosWithParams]
+  );
+
+  const handleAddTodo = useCallback(
+    async (todoData: Omit<Todo, "id" | "createdAt" | "updatedAt">) => {
+      const newTodo: NewTodo = {
+        title: todoData.title,
+        description: todoData.description,
+        status: todoData.status,
+        priority: todoData.priority,
+        tags: todoData.tags,
+        dueDate: todoData.dueDate ? new Date(todoData.dueDate) : undefined,
+      };
+
+      await dispatch(addTodo(newTodo));
+      // Refresh data to get updated todos from server
+      fetchTodosWithParams();
+    },
+    [dispatch, fetchTodosWithParams]
+  );
+
+  const handleEditTodo = useCallback((todo: Todo) => {
+    setEditingTodo(todo);
+    setShowEditDialog(true);
+  }, []);
+
+  const handleUpdateTodo = useCallback(
+    async (updatedTodo: Todo) => {
+      await dispatch(
+        updateTodo({
+          id: updatedTodo.id,
+          title: updatedTodo.title,
+          description: updatedTodo.description,
+          status: updatedTodo.status,
+          priority: updatedTodo.priority,
+          tags: updatedTodo.tags,
+          dueDate: updatedTodo.dueDate
+            ? new Date(updatedTodo.dueDate)
+            : undefined,
+        })
+      );
+      // Refresh data to get updated todos from server
+      fetchTodosWithParams();
+    },
+    [dispatch, fetchTodosWithParams]
+  );
+
+  const handleDeleteTodo = useCallback(
+    async (id: string) => {
+      await dispatch(deleteTodo(id));
+      // Refresh data to get updated todos from server
+      fetchTodosWithParams();
+    },
+    [dispatch, fetchTodosWithParams]
+  );
+
+  const handleStatusChange = useCallback(
+    async (id: string, status: TodoStatus) => {
+      await dispatch(updateTodo({ id, status }));
+      // Refresh data to get updated todos from server
+      fetchTodosWithParams();
+    },
+    [dispatch, fetchTodosWithParams]
+  );
+
+  const handleAddTodoToColumn = useCallback((status: TodoStatus) => {
+    setAddDialogStatus(status);
+    setShowAddDialog(true);
+  }, []);
 
   return (
-    <div className="max-w-3xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">Todo Management</h1>
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto p-6 max-w-7xl">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground text-balance">
+              Todo Pro
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Manage your tasks efficiently with drag & drop
+            </p>
+          </div>
 
-      {/* --- Form --- */}
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="space-y-4 border p-4 rounded-lg shadow"
-      >
-        <input
-          type="text"
-          placeholder="Title"
-          {...register("title")}
-          className="w-full p-2 border rounded"
-        />
-        {errors.title && (
-          <p className="text-red-500 text-sm">{errors.title.message}</p>
-        )}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center border rounded-lg p-1">
+              <Button
+                variant={viewMode === "list" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("list")}
+                className="px-3"
+              >
+                <List className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === "kanban" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("kanban")}
+                className="px-3"
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+            </div>
 
-        <textarea
-          placeholder="Description"
-          {...register("description")}
-          className="w-full p-2 border rounded"
-        />
-
-        <div className="flex gap-4">
-          <select {...register("status")} className="p-2 border rounded">
-            <option value="todo">Todo</option>
-            <option value="in_progress">In Progress</option>
-            <option value="done">Done</option>
-          </select>
-
-          <select {...register("priority")} className="p-2 border rounded">
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-          </select>
-
-          <input
-            type="date"
-            {...register("dueDate")}
-            className="p-2 border rounded"
-          />
+            <Button onClick={() => setShowAddDialog(true)} disabled={isPending}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Todo
+            </Button>
+          </div>
         </div>
 
-        <button
-          type="submit"
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          {editingId ? "Update Todo" : "Add Todo"}
-        </button>
-      </form>
+        {error && (
+          <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+            <p className="text-destructive text-sm">{error}</p>
+          </div>
+        )}
 
-      {/* --- Todos List --- */}
-      <div className="mt-8">
-        <h2 className="text-xl font-semibold mb-4">Your Todos</h2>
+        <div className="mb-6">
+          <TodoFiltersComponent
+            filters={{
+              search: params.search,
+              status: params.status,
+              priority: params.priority,
+            }}
+            sortBy={params.sortBy || "createdAt"}
+            sortOrder={params.sortOrder || "desc"}
+            onFiltersChange={handleFiltersChange}
+            onSortChange={handleSortChange}
+            onClearFilters={handleClearFilters}
+          />
+        </div>
+        {/* Status summary */}
+        <div className="mb-4 p-3 bg-muted/30 rounded-lg border">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex flex-wrap gap-4">
+              <span>To Do: {todosByStatus.todo.length} items</span>
+              <span>In Progress: {todosByStatus.in_progress.length} items</span>
+              <span>Done: {todosByStatus.done.length} items</span>
+            </div>
+            <div className="text-xs">Total: {todos.length ?? 0} todos</div>
+          </div>
+        </div>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-muted-foreground">Loading todos...</div>
+          </div>
+        ) : viewMode === "kanban" ? (
+          <div>
+            <DragDropContext onDragEnd={handleDragEnd}>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <TodoColumn
+                  status="todo"
+                  todos={todosByStatus.todo}
+                  onEdit={handleEditTodo}
+                  onDelete={handleDeleteTodo}
+                  onStatusChange={handleStatusChange}
+                  onAddTodo={handleAddTodoToColumn}
+                />
 
-        {isLoading && <p>Loading todos...</p>}
-        {error && <p className="text-red-500">{error}</p>}
-        {!isLoading && todos.length === 0 && <p>No todos found.</p>}
+                <TodoColumn
+                  status="in_progress"
+                  todos={todosByStatus.in_progress}
+                  onEdit={handleEditTodo}
+                  onDelete={handleDeleteTodo}
+                  onStatusChange={handleStatusChange}
+                  onAddTodo={handleAddTodoToColumn}
+                />
 
-        <ul className="space-y-3">
-          {todos.map((todo) => (
-            <li
-              key={todo.id}
-              className="border p-3 rounded flex justify-between items-start"
-            >
-              <div>
-                <h3 className="font-medium">
-                  {todo.title}{" "}
-                  <span className="text-sm text-gray-500">({todo.status})</span>
-                </h3>
-                {todo.description && (
-                  <p className="text-sm text-gray-700">{todo.description}</p>
-                )}
-                <p className="text-xs text-gray-500">
-                  Priority: {todo.priority ?? "medium"}
-                  {todo.dueDate && ` | Due: ${todo.dueDate}`}
-                </p>
+                <TodoColumn
+                  status="done"
+                  todos={todosByStatus.done}
+                  onEdit={handleEditTodo}
+                  onDelete={handleDeleteTodo}
+                  onStatusChange={handleStatusChange}
+                  onAddTodo={handleAddTodoToColumn}
+                />
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleEdit(todo.id)}
-                  className="px-2 py-1 bg-yellow-500 text-white rounded"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(todo.id)}
-                  className="px-2 py-1 bg-red-500 text-white rounded"
-                >
-                  Delete
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
+            </DragDropContext>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="space-y-3">
+              {todos.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-muted-foreground text-lg mb-2">
+                    No todos found
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {params.search || params.status || params.priority
+                      ? "Try adjusting your filters or search terms"
+                      : "Create your first todo to get started"}
+                  </p>
+                </div>
+              ) : (
+                todos.map((todo) => (
+                  <TodoListItem
+                    key={todo.id}
+                    todo={todo}
+                    onEdit={handleEditTodo}
+                    onDelete={handleDeleteTodo}
+                    onStatusChange={handleStatusChange}
+                  />
+                ))
+              )}
+            </div>
+
+            <SimplePagination
+              currentPage={page}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              onPageChange={handlePageChange}
+            />
+          </div>
+        )}
+
+        <AddTodoDialog
+          open={showAddDialog}
+          onOpenChange={setShowAddDialog}
+          onAddTodo={handleAddTodo}
+          initialStatus={addDialogStatus}
+        />
+
+        <EditTodoDialog
+          todo={editingTodo}
+          open={showEditDialog}
+          onOpenChange={setShowEditDialog}
+          onEditTodo={handleUpdateTodo}
+        />
       </div>
     </div>
   );
-};
+}

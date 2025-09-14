@@ -4,40 +4,82 @@ import {
   createAsyncThunk,
   type PayloadAction,
 } from "@reduxjs/toolkit";
-import type { Todo, NewTodo, UpdateTodo } from "../../types/todo";
+import type {
+  Todo,
+  NewTodo,
+  UpdateTodo,
+  FetchTodosParams,
+} from "../../types/todo";
+
+interface ResData {
+  items: Todo[];
+  totalItems: number;
+  totalPages: number;
+  page: number;
+}
 
 interface TodosState {
-  items: Todo[];
+  data: ResData;
   isLoading: boolean;
+  isPending: boolean;
   error: string | null;
 }
 
 const initialState: TodosState = {
-  items: [],
+  data: {
+    items: [],
+    totalItems: 0,
+    totalPages: 0,
+    page: 1,
+  },
   isLoading: false,
+  isPending: false,
   error: null,
 };
 
-// Fetch all todos
-export const fetchTodos = createAsyncThunk(
-  "todos/fetchTodos",
-  async (_, { rejectWithValue }) => {
-    try {
-      const response = await fetch("/todos", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      });
+// Fetch all todos with filters
+export const fetchTodos = createAsyncThunk<
+  ResData,
+  FetchTodosParams | undefined,
+  { rejectValue: string }
+>("todos/fetchTodos", async (params, { rejectWithValue }) => {
+  try {
+    const query = new URLSearchParams();
 
-      if (!response.ok) {
-        const error = await response.json();
-        return rejectWithValue(error.message);
-      }
+    if (params?.page) query.set("page", String(params.page));
+    if (params?.itemsPerPage)
+      query.set("items-per-page", String(params.itemsPerPage));
+    if (params?.search) query.set("search", params.search);
+    if (params?.status) query.set("status", params.status);
+    if (params?.priority) query.set("priority", params.priority);
+    if (params?.sortBy) query.set("sortBy", params.sortBy);
+    if (params?.sortOrder) query.set("sortOrder", params.sortOrder);
 
-      return (await response.json()) as Todo[];
-    } catch {
-      return rejectWithValue("Failed to fetch todos");
+    const response = await fetch(`/todos?${query.toString()}`, {
+      method: "GET",
+      headers: {
+        Authorization: localStorage.getItem("token") ?? "",
+      },
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      return rejectWithValue(error.message || "Failed to fetch todos");
     }
+
+    const data = await response.json();
+
+    // Transform the server response to match our ResData interface
+    return {
+      items: data.items || [],
+      totalItems: data.total || 0,
+      totalPages: Math.ceil((data.total || 0) / (data.itemsPerPage || 10)),
+      page: data.page || 1,
+    };
+  } catch (error) {
+    console.log(error);
+    return rejectWithValue("Failed to fetch todos");
   }
-);
+});
 
 // Add new todo
 export const addTodo = createAsyncThunk(
@@ -48,7 +90,7 @@ export const addTodo = createAsyncThunk(
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: localStorage.getItem("token") ?? ("" as string),
         },
         body: JSON.stringify(newTodo),
       });
@@ -74,7 +116,7 @@ export const updateTodo = createAsyncThunk(
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: localStorage.getItem("token") ?? ("" as string),
         },
         body: JSON.stringify(updatedTodo),
       });
@@ -99,7 +141,7 @@ export const deleteTodo = createAsyncThunk(
       const response = await fetch(`/todos/${id}`, {
         method: "DELETE",
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: localStorage.getItem("token") ?? ("" as string),
         },
       });
 
@@ -131,10 +173,13 @@ const todoSlice = createSlice({
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(fetchTodos.fulfilled, (state, action: PayloadAction<Todo[]>) => {
-        state.isLoading = false;
-        state.items = action.payload;
-      })
+      .addCase(
+        fetchTodos.fulfilled,
+        (state, action: PayloadAction<ResData>) => {
+          state.isLoading = false;
+          state.data = action.payload;
+        }
+      )
       .addCase(fetchTodos.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
@@ -142,31 +187,45 @@ const todoSlice = createSlice({
 
       // Add
       .addCase(addTodo.pending, (state) => {
-        state.isLoading = true;
+        state.isPending = true;
       })
       .addCase(addTodo.fulfilled, (state, action: PayloadAction<Todo>) => {
-        state.isLoading = false;
-        state.items.unshift(action.payload); // add new todo at top
+        state.isPending = false;
+        state.data.items.unshift(action.payload);
       })
       .addCase(addTodo.rejected, (state, action) => {
-        state.isLoading = false;
+        state.isPending = false;
         state.error = action.payload as string;
       })
 
       // Update
+      .addCase(updateTodo.pending, (state) => {
+        state.isPending = true;
+      })
       .addCase(updateTodo.fulfilled, (state, action: PayloadAction<Todo>) => {
-        const index = state.items.findIndex((t) => t.id === action.payload.id);
-        if (index !== -1) state.items[index] = action.payload;
+        state.isPending = false;
+        const index = state.data.items.findIndex(
+          (t) => t.id === action.payload.id
+        );
+        if (index !== -1) state.data.items[index] = action.payload;
       })
       .addCase(updateTodo.rejected, (state, action) => {
+        state.isPending = false;
         state.error = action.payload as string;
       })
 
       // Delete
+      .addCase(deleteTodo.pending, (state) => {
+        state.isPending = true;
+      })
       .addCase(deleteTodo.fulfilled, (state, action: PayloadAction<string>) => {
-        state.items = state.items.filter((t) => t.id !== action.payload);
+        state.isPending = false;
+        state.data.items = state.data.items.filter(
+          (t) => t.id !== action.payload
+        );
       })
       .addCase(deleteTodo.rejected, (state, action) => {
+        state.isPending = false;
         state.error = action.payload as string;
       });
   },

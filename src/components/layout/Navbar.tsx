@@ -1,98 +1,103 @@
-import { Loader2Icon, Moon, Sun, User } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Loader2Icon, Moon, Sun, User, LogOut } from "lucide-react";
 import { logoutUser } from "../../store/slices/authSlice";
-import { useTheme } from "../provider/ThemeProvider";
-import { useAppDispatch, useAppSelector } from "../../hooks";
+import { useAppDispatch, useAppSelector, useTheme } from "../../hooks";
 import { Button } from "../ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
 
 const Navbar = () => {
   const { theme, setTheme } = useTheme();
-  const [dropdown, setDropdown] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const dispatch = useAppDispatch();
   const { isLoading, user } = useAppSelector((state) => state.auth);
 
   const toggleTheme = () => {
-    if (theme === "dark") {
-      setTheme("light");
-    } else {
-      setTheme("dark");
-    }
+    setTheme(theme === "dark" ? "light" : "dark");
   };
 
   const logout = async () => {
     await dispatch(logoutUser());
   };
 
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(e.target as Node)
-      ) {
-        setDropdown(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
   return (
-    <div className="w-full bg-white shadow-md px-6 py-3">
-      <nav className="max-w-7xl mx-auto flex justify-between items-center">
+    <header className="w-full bg-card shadow-md border-b border-b-accent">
+      <div className="py-4 flex max-w-screen-xl items-center mx-auto">
         {/* Logo */}
-        <div className="flex items-center gap-2">
-          <img src="/logo.svg" alt="logo" className="w-8 h-8" />
-          <span className="font-bold text-lg text-gray-800 ">Todo Pro</span>
+        <div className="mr-4 flex">
+          <a href="/" className="mr-6 flex items-center space-x-2">
+            <img src="/logo.svg" alt="logo" className="w-8 h-8" />
+            <span className="font-bold text-foreground">Todo Pro</span>
+          </a>
         </div>
 
-        {/* Right controls */}
-        <div className="flex items-center gap-4 relative" ref={dropdownRef}>
-          {/* Dark/Light Toggle */}
-          <button
-            onClick={toggleTheme}
-            className="p-2 rounded-full bg-gray-200  text-gray-800 "
-          >
-            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
-
-          {/* User Button */}
-          <div className="relative">
-            <button
-              onClick={() => setDropdown((prev) => !prev)}
-              className="p-2 rounded-full bg-gray-200  text-gray-800 "
+        {/* Navigation items can go here */}
+        <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
+          {/* Right controls */}
+          <nav className="flex items-center space-x-2">
+            {/* Theme Toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              className="h-9 w-9"
             >
-              <User size={18} />
-            </button>
+              <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+              <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+              <span className="sr-only">Toggle theme</span>
+            </Button>
 
-            {/* Dropdown Menu */}
-            {dropdown && (
-              <div className="absolute right-0 mt-2 w-56 bg-white  rounded-lg shadow-lg border border-amber-100  z-50">
-                <div className="p-4 border-b border-amber-100">
-                  <p className="text-sm text-gray-600 ">{user?.name}</p>
-                  <p className="font-medium text-gray-800 ">{user?.email}</p>
-                </div>
+            {/* User Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-9 w-9">
+                  <User className="w-8 h-8" />
 
-                <Button
-                  variant="outline"
+                  <span className="sr-only">User menu</span>
+                </Button>
+              </DropdownMenuTrigger>
+
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">
+                      {user?.name}
+                    </p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user?.email}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+
+                <DropdownMenuSeparator />
+
+                <DropdownMenuItem
                   onClick={logout}
                   disabled={isLoading}
-                  className="w-full  rounded-t-none "
+                  className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950"
                 >
                   {isLoading ? (
                     <>
-                      <Loader2Icon className="animate-spin" /> Logging out
+                      <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                      Logging out...
                     </>
                   ) : (
-                    "Log out"
+                    <>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Log out
+                    </>
                   )}
-                </Button>
-              </div>
-            )}
-          </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </nav>
         </div>
-      </nav>{" "}
-    </div>
+      </div>
+    </header>
   );
 };
 
