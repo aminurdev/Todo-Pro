@@ -342,7 +342,6 @@ export default function TodosPage() {
             onFiltersChange={handleFiltersChange}
             onSortChange={handleSortChange}
             onClearFilters={handleClearFilters}
-            isLoading={isLoading}
           />
         </div>
         {/* Status summary */}
