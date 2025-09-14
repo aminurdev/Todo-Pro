@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useAppSelector } from "@/hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -64,8 +65,10 @@ export function AddTodoDialog({
   const [priority, setPriority] = useState<TodoPriority>("medium");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [dueDate, setDueDate] = useState<Date | undefined>();
-  const [isLoading, setIsLoading] = useState(false);
   const [titleError, setTitleError] = useState("");
+  
+  // Get isPending from Redux store instead of local state
+  const isPending = useAppSelector((state) => state.todos.isPending);
 
   // Focus title input when dialog opens
   useEffect(() => {
@@ -88,7 +91,6 @@ export function AddTodoDialog({
         setSelectedTags([]);
         setDueDate(undefined);
         setTitleError("");
-        setIsLoading(false);
       }, 200);
     }
   }, [open, initialStatus]);
@@ -108,13 +110,9 @@ export function AddTodoDialog({
     }
 
     setTitleError("");
-    setIsLoading(true);
 
     try {
-      // Simulate async operation
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      onAddTodo({
+      await onAddTodo({
         title: trimmedTitle,
         description: description.trim() || undefined,
         status,
@@ -126,8 +124,6 @@ export function AddTodoDialog({
       onOpenChange(false);
     } catch (error) {
       console.error("Error adding todo:", error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -356,17 +352,17 @@ export function AddTodoDialog({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              disabled={isLoading}
+              disabled={isPending}
               className="px-6"
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              disabled={!title.trim() || isLoading}
+              disabled={!title.trim() || isPending}
               className="px-6 min-w-[100px]"
             >
-              {isLoading ? (
+              {isPending ? (
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                   Adding...

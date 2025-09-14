@@ -8,6 +8,7 @@ import Register from "../pages/Register";
 import { AuthLayout, RootLayout } from "@/components/layout";
 import ProtectedRoute from "./ProtectedRoute";
 import HomePage from "@/pages/Home";
+import { SingleTodo } from "@/pages/SingleTodo";
 
 const router = createBrowserRouter([
   {
@@ -23,6 +24,14 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <Todos />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/app/todos/:id",
+        element: (
+          <ProtectedRoute>
+            <SingleTodo />
           </ProtectedRoute>
         ),
       },

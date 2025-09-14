@@ -1,5 +1,6 @@
 import type { Todo, TodoStatus } from "@/types/todo";
 import { TodoCard } from "./TodoCard";
+import { TodoCardSkeleton } from "./TodoCardSkeleton";
 import { Droppable, Draggable } from "@hello-pangea/dnd";
 import { Badge } from "@/components/ui/badge";
 import { Plus } from "lucide-react";
@@ -9,9 +10,11 @@ interface TodoColumnProps {
   status: TodoStatus;
   todos: Todo[];
   onEdit: (todo: Todo) => void;
-  onDelete: (id: string) => void;
+  onDelete: (todo: Todo) => void;
   onStatusChange: (id: string, status: TodoStatus) => void;
   onAddTodo: (status: TodoStatus) => void;
+  isPending?: boolean;
+  isLoading?: boolean;
 }
 
 const statusConfig = {
@@ -39,6 +42,8 @@ export function TodoColumn({
   onDelete,
   onStatusChange,
   onAddTodo,
+  isPending = false,
+  isLoading = false,
 }: TodoColumnProps) {
   const config = statusConfig[status];
 
@@ -56,6 +61,7 @@ export function TodoColumn({
           variant="ghost"
           onClick={() => onAddTodo(status)}
           className="h-8 w-8 p-0"
+          disabled={isPending || isLoading}
         >
           <Plus className="h-4 w-4" />
         </Button>
@@ -72,36 +78,43 @@ export function TodoColumn({
                 : "border-2 border-transparent"
             } min-h-[200px]`}
           >
-            {todos.map((todo, index) => (
-              <Draggable key={todo.id} draggableId={todo.id} index={index}>
-                {(provided, snapshot) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.draggableProps}
-                    {...provided.dragHandleProps}
-                    className={`transition-all duration-200 ${
-                      snapshot.isDragging
-                        ? "rotate-1 scale-105 shadow-lg z-50 opacity-90"
-                        : "hover:shadow-md"
-                    }`}
-                    style={{
-                      ...provided.draggableProps.style,
-                      ...(snapshot.isDragging && { pointerEvents: "none" }),
-                    }}
-                  >
-                    <TodoCard
-                      todo={todo}
-                      onEdit={onEdit}
-                      onDelete={onDelete}
-                      onStatusChange={onStatusChange}
-                    />
-                  </div>
-                )}
-              </Draggable>
-            ))}
+            {isLoading ? (
+              // Show skeleton loading during data fetch
+              Array.from({ length: 3 }, (_, index) => (
+                <TodoCardSkeleton key={`skeleton-${status}-${index}`} />
+              ))
+            ) : (
+              todos.map((todo, index) => (
+                <Draggable key={todo.id} draggableId={todo.id} index={index}>
+                  {(provided, snapshot) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      {...provided.dragHandleProps}
+                      className={`transition-all duration-200 ${
+                        snapshot.isDragging
+                          ? "rotate-1 scale-105 shadow-lg z-50 opacity-90"
+                          : "hover:shadow-md"
+                      } ${isPending ? "opacity-50 pointer-events-none" : ""}`}
+                      style={{
+                        ...provided.draggableProps.style,
+                        ...(snapshot.isDragging && { pointerEvents: "none" }),
+                      }}
+                    >
+                      <TodoCard
+                        todo={todo}
+                        onEdit={onEdit}
+                        onDelete={onDelete}
+                        onStatusChange={onStatusChange}
+                      />
+                    </div>
+                  )}
+                </Draggable>
+              ))
+            )}
             {provided.placeholder}
 
-            {todos.length === 0 && (
+            {!isLoading && todos.length === 0 && (
               <div
                 className={`flex flex-col items-center justify-center h-32 text-muted-foreground text-sm border-2 border-dashed rounded-lg transition-all duration-200 ${
                   snapshot.isDraggingOver

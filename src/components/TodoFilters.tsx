@@ -23,6 +23,7 @@ interface TodoFiltersProps {
   onFiltersChange: (filters: Filters) => void;
   onSortChange: (sortBy: SortBy, sortOrder: SortOrder) => void;
   onClearFilters: () => void;
+  isLoading?: boolean;
 }
 
 export function TodoFilters({
@@ -32,6 +33,7 @@ export function TodoFilters({
   onFiltersChange,
   onSortChange,
   onClearFilters,
+  isLoading = false,
 }: TodoFiltersProps) {
   const hasActiveFilters = Object.values(filters).some(
     (value) =>
@@ -53,9 +55,10 @@ export function TodoFilters({
             size="sm"
             onClick={onClearFilters}
             className="text-muted-foreground hover:text-foreground"
+            disabled={isLoading}
           >
             <X className="h-4 w-4 mr-1" />
-            Clear
+            {isLoading ? "Loading..." : "Clear"}
           </Button>
         )}
       </div>
@@ -71,6 +74,7 @@ export function TodoFilters({
               onFiltersChange({ ...filters, search: e.target.value })
             }
             className="pl-10"
+            disabled={isLoading}
           />
         </div>
         {/* Status and Priority Filters */}
@@ -82,6 +86,7 @@ export function TodoFilters({
               status: value === "all" ? undefined : (value as TodoStatus),
             })
           }
+          disabled={isLoading}
         >
           <SelectTrigger>
             <SelectValue placeholder="Filter by status" />
@@ -101,6 +106,7 @@ export function TodoFilters({
               priority: value === "all" ? undefined : (value as TodoPriority),
             })
           }
+          disabled={isLoading}
         >
           <SelectTrigger>
             <SelectValue placeholder="Filter by priority" />
@@ -117,6 +123,7 @@ export function TodoFilters({
           <Select
             value={sortBy}
             onValueChange={(value) => onSortChange(value as SortBy, sortOrder)}
+            disabled={isLoading}
           >
             <SelectTrigger className="w-[140px]">
               <SelectValue />
@@ -136,6 +143,7 @@ export function TodoFilters({
               onSortChange(sortBy, sortOrder === "asc" ? "desc" : "asc")
             }
             className="px-3"
+            disabled={isLoading}
           >
             {sortOrder === "asc" ? (
               <SortAsc className="h-4 w-4" />

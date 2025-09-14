@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useAppSelector } from "@/hooks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -75,9 +76,11 @@ export function EditTodoDialog({
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [titleError, setTitleError] = useState("");
   const [hasChanges, setHasChanges] = useState(false);
+  
+  // Get isPending from Redux store instead of local state
+  const isPending = useAppSelector((state) => state.todos.isPending);
 
   // Track original values for change detection
   const [originalValues, setOriginalValues] = useState<{
@@ -154,12 +157,8 @@ export function EditTodoDialog({
     }
 
     setTitleError("");
-    setIsLoading(true);
 
     try {
-      // Simulate async operation
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
       const updatedTodo: Todo = {
         ...todo,
         title: trimmedTitle,
@@ -171,12 +170,10 @@ export function EditTodoDialog({
         updatedAt: new Date().toISOString(),
       };
 
-      onEditTodo(updatedTodo);
+      await onEditTodo(updatedTodo);
       onOpenChange(false);
     } catch (error) {
       console.error("Error updating todo:", error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -461,17 +458,17 @@ export function EditTodoDialog({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              disabled={isLoading}
+              disabled={isPending}
               className="px-6"
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              disabled={!title.trim() || !hasChanges || isLoading}
+              disabled={!title.trim() || !hasChanges || isPending}
               className="px-6 min-w-[120px]"
             >
-              {isLoading ? (
+              {isPending ? (
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                   Saving...

@@ -22,12 +22,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-
+import { Link } from "react-router";
 interface TodoListItemProps {
   todo: Todo;
   onEdit: (todo: Todo) => void;
-  onDelete: (id: string) => void;
+  onDelete: (todo: Todo) => void;
   onStatusChange: (id: string, status: Todo["status"]) => void;
+  isPending: boolean;
 }
 
 const priorityColors = {
@@ -53,6 +54,7 @@ export function TodoListItem({
   onEdit,
   onDelete,
   onStatusChange,
+  isPending,
 }: TodoListItemProps) {
   const StatusIcon = statusIcons[todo.status];
 
@@ -73,6 +75,7 @@ export function TodoListItem({
         <div className="flex items-start gap-4">
           {/* Status Icon */}
           <button
+            disabled={isPending}
             onClick={() => {
               const nextStatus =
                 todo.status === "todo"
@@ -96,12 +99,12 @@ export function TodoListItem({
               <div className="flex-1 min-w-0">
                 <h3
                   className={cn(
-                    "font-semibold text-card-foreground text-balance leading-tight",
+                    "font-semibold text-card-foreground text-balance leading-tight hover:underline cursor-pointer",
                     todo.status === "done" &&
                       "line-through text-muted-foreground"
                   )}
                 >
-                  {todo.title}
+                  <Link to={`/app/todos/${todo.id}`}>{todo.title}</Link>
                 </h3>
                 {todo.description && (
                   <p className="text-sm text-muted-foreground mt-1 text-pretty line-clamp-2">
@@ -127,7 +130,7 @@ export function TodoListItem({
                     Edit
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => onDelete(todo.id)}
+                    onClick={() => onDelete(todo)}
                     className="text-destructive focus:text-destructive"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />

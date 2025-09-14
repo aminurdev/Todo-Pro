@@ -189,6 +189,21 @@ export const handlers = [
     );
   }),
 
+  // GET /todos//:id
+  http.get<{ id: string }>("/todos/:id", async ({ params, request }) => {
+    withAuthorization(request);
+
+    const { id } = params;
+    await delay(1200);
+
+    const todo = todos.find((t) => t.id === id);
+    if (!todo) {
+      return HttpResponse.json({ message: "Todo not found" }, { status: 404 });
+    }
+
+    return HttpResponse.json(todo, { status: 200 });
+  }),
+
   // POST /todos
   http.post("/todos", async ({ request }) => {
     withAuthorization(request);

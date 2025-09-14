@@ -17,11 +17,12 @@ import {
 import { Card, CardContent, CardHeader } from "./ui/card";
 import { Button } from "./ui/button";
 import type { Todo } from "@/types/todo";
+import { Link } from "react-router";
 
 interface TodoCardProps {
   todo: Todo;
   onEdit: (todo: Todo) => void;
-  onDelete: (id: string) => void;
+  onDelete: (todo: Todo) => void;
   onStatusChange: (id: string, status: Todo["status"]) => void;
 }
 
@@ -43,8 +44,8 @@ export function TodoCard({ todo, onEdit, onDelete }: TodoCardProps) {
       <CardHeader>
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-card-foreground text-balance leading-tight">
-              {todo.title}
+            <h3 className="font-semibold text-card-foreground text-balance leading-tight hover:underline cursor-pointer">
+              <Link to={`/app/todos/${todo.id}`}>{todo.title}</Link>
             </h3>
             {todo.description && (
               <p className="text-sm text-muted-foreground mt-1 text-pretty">
@@ -68,7 +69,7 @@ export function TodoCard({ todo, onEdit, onDelete }: TodoCardProps) {
                 Edit
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={() => onDelete(todo.id)}
+                onClick={() => onDelete(todo)}
                 className="text-destructive focus:text-destructive"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
