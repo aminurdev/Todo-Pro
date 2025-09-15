@@ -7,6 +7,10 @@
 
 A modern, feature-rich todo management application built with React 18, TypeScript, and Redux Toolkit. This SPA provides comprehensive todo management with advanced features like filtering, sorting, drag-and-drop, dark mode, and full authentication.
 
+## 🚀 Live Demo
+
+[Try TodoPro Live](https://todo-proo.netlify.app/)
+
 ## 📋 Table of Contents
 
 - [Features](#-features)
